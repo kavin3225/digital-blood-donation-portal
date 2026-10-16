@@ -2,6 +2,7 @@
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 import { ENV } from './config/env';
 import { connectDB } from './config/db';
 import { errorHandler } from './middlewares/errorHandler';
@@ -66,6 +67,16 @@ app.use('/api/coordinator', coordinatorRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/stats', statsRoutes);
+
+// Serve the built React application from the same origin in production.
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
+app.use(express.static(clientDistPath));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(clientDistPath, 'index.html'), err => {
+    if (err) next(err);
+  });
+});
 
 // Centralized Error Handling
 app.use(errorHandler);

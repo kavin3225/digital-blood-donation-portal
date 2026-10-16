@@ -88,13 +88,22 @@ export const broadcastEmergencyRequest = async (request: IEmergencyRequest): Pro
 };
 
 export const notifyRequesterOfDonorResponse = async (request: IEmergencyRequest, donorName: string, donorArea: string) => {
+  const neededBy = new Date(request.requiredBy).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+  const location = [request.hospital || request.hospitalLocation || request.area, request.district]
+    .filter(Boolean)
+    .join(', ');
+  const body = `A donor offered to help with your ${request.bloodGroup} request (${request.unitsRequired} unit(s)), needed at ${location} by ${neededBy}. Open the portal to review.`;
   const notification = await createInAppNotification({
     recipientId: request.requesterId,
     recipientEmail: request.requesterEmail,
     requestId: request._id,
     type: 'donor_response',
     title: 'A donor offered to help',
-    body: `${request.unitsRequired} unit(s) needed at ${location} by ${neededBy}. Open the portal to review the request and respond if you can help.`
+    body,
     metadata: { requestCode: request.requestId },
   });
   await sendWebPushToUser({
@@ -103,7 +112,7 @@ export const notifyRequesterOfDonorResponse = async (request: IEmergencyRequest,
     requestId: request._id,
     type: 'donor_response',
     title: 'A donor offered to help',
-    body: `${request.unitsRequired} unit(s) needed at ${location} by ${neededBy}. Open the portal to review the request and respond if you can help.`
+    body,
     data: { requestId: request._id.toString() },
   });
   return notification;
