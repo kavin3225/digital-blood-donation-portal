@@ -1,0 +1,207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 min-h-screen font-sans;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-tap-highlight-color: transparent;
+    background-image:
+      radial-gradient(ellipse at 8% 12%, rgba(251, 207, 232, 0.22), transparent 34%),
+      radial-gradient(ellipse at 92% 82%, rgba(191, 219, 254, 0.2), transparent 32%);
+    background-size: 140% 140%;
+    animation: atmosphereShift 28s ease-in-out infinite alternate;
+  }
+
+  /* Accessible focus rings */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-red-500 ring-offset-2;
+  }
+
+  /* Honor prefers-reduced-motion for all CSS animations */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Lightweight ambient motion shared by the portal's page backgrounds. */
+.ambient-orb {
+  will-change: transform;
+  animation: ambientDrift 13s ease-in-out infinite;
+}
+
+.ambient-orb--slow {
+  animation-duration: 19s;
+  animation-delay: -6s;
+}
+
+.ambient-orb--reverse {
+  animation-direction: alternate-reverse;
+  animation-duration: 16s;
+  animation-delay: -9s;
+}
+
+.ambient-grid {
+  background-position: 0 0;
+  animation: gridFloat 32s linear infinite;
+}
+
+.auth-artwork-motion {
+  transform-origin: center;
+  animation: artworkBreathe 22s ease-in-out infinite alternate;
+}
+
+.surface-enter {
+  animation: surfaceEnter 520ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.lift-on-hover {
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.lift-on-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 36px -24px rgba(80, 16, 35, 0.35);
+}
+
+@keyframes atmosphereShift {
+  from { background-position: 0% 0%, 100% 100%; }
+  to { background-position: 24% 16%, 78% 86%; }
+}
+
+@keyframes ambientDrift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(14px, -18px, 0) scale(1.06); }
+}
+
+@keyframes gridFloat {
+  from { background-position: 0 0; }
+  to { background-position: 44px 28px; }
+}
+
+@keyframes artworkBreathe {
+  from { transform: scale(1); }
+  to { transform: scale(1.055); }
+}
+
+@keyframes surfaceEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom interactive touch ripple */
+.touch-ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.touch-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0);
+  animation: rippleEffect 0.65s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes rippleEffect {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3.5);
+    opacity: 0;
+  }
+}
+
+/* ECG stroke animation */
+.ecg-line {
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  animation: dashECG 3s ease-in-out infinite;
+}
+
+@keyframes dashECG {
+  0% {
+    stroke-dashoffset: 800;
+    opacity: 0.2;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    opacity: 0.9;
+  }
+  100% {
+    stroke-dashoffset: -800;
+    opacity: 0.2;
+  }
+}
+
+/* Radar scan sweep */
+.radar-sweep-beam {
+  transform-origin: center center;
+  animation: radarSpin 5s linear infinite;
+}
+
+@keyframes radarSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Shimmer gradient effect for buttons & chips */
+.shimmer-active {
+  background-size: 200% 100%;
+  animation: shimmerAnim 2.5s infinite;
+}
+
+@keyframes shimmerAnim {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Institutional Toast Animations */
+@keyframes toastSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastCountdown {
+  0% {
+    width: 100%;
+  }
+  100% {
+    width: 0%;
+  }
+}
