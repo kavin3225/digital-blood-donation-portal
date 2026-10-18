@@ -22,6 +22,9 @@ const app = express();
 app.use(
   helmet({
     contentSecurityPolicy: false, // Handled by frontend or configured for GIS
+    // Google Identity Services needs its popup to retain a window reference
+    // when FedCM is unavailable; Helmet's default `same-origin` severs it.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
