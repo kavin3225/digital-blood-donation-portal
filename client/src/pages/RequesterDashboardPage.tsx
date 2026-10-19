@@ -6,6 +6,7 @@ import { ResponseDeskArtwork } from '../components/artworks/ResponseDeskArtwork'
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Modal } from '../components/common/Modal';
 import { ActionConfirmModal } from '../components/common/ActionConfirmModal';
+import { RequestOwnerActions } from '../components/request/RequestOwnerActions';
 import { ProfileCompletionModal } from '../components/profile/ProfileCompletionModal';
 import { ProfileIncompleteBanner } from '../components/profile/ProfileIncompleteBanner';
 import { TAMIL_NADU_DISTRICTS, CAMPUS_AREA_SUGGESTIONS } from '../utils/districts';
@@ -64,7 +65,7 @@ export const RequesterDashboardPage: React.FC = () => {
   const clientRequestKey = useRef(crypto.randomUUID());
   const [unitsRequired, setUnitsRequired] = useState(1);
   const [district, setDistrict] = useState(user?.district || 'Erode');
-  const [area, setArea] = useState(user?.approximateArea || 'Sathyamangalam Campus');
+  const [area, setArea] = useState('');
   const [areaSearch, setAreaSearch] = useState('');
   const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
   const [requiredByDate, setRequiredByDate] = useState('');
@@ -87,7 +88,6 @@ export const RequesterDashboardPage: React.FC = () => {
       if (!contactPersonName) setContactPersonName(user.name || '');
       if (!contactPersonPhone) setContactPersonPhone(user.mobile || '');
       if (!district) setDistrict(user.district || 'Erode');
-      if (!area) setArea(user.approximateArea || 'Sathyamangalam Campus');
     }
   }, [user, requestTarget]);
 
@@ -115,6 +115,8 @@ export const RequesterDashboardPage: React.FC = () => {
       setProfileModalOpen(true);
       return;
     }
+    setArea('');
+    setAreaSearch('');
     setCreateModalOpen(true);
   };
 
@@ -179,6 +181,7 @@ export const RequesterDashboardPage: React.FC = () => {
       if (res.success) {
         clientRequestKey.current = crypto.randomUUID();
         setFormSuccess('Emergency request sent to campus users. Donors with the matching blood group can respond now.');
+        toast.success('Blood request submitted. Campus users have been notified.');
         setTimeout(() => {
           setCreateModalOpen(false);
           setFormSuccess(null);
@@ -215,9 +218,9 @@ export const RequesterDashboardPage: React.FC = () => {
     if (!cancelConfirmReq) return;
     try {
       await api.cancelRequest(cancelConfirmReq._id, reason || 'Cancelled by requester');
-      toast.success(`Emergency request ${cancelConfirmReq.requestId} cancelled.`);
+      toast.success('Blood request cancelled.');
       fetchRequests();
-      if (selectedRequestDetails) setSelectedRequestDetails(null);
+      setSelectedRequestDetails(null);
       setCancelConfirmReq(null);
     } catch (err: any) {
       toast.error(err.message || 'Failed to cancel request');
@@ -288,7 +291,7 @@ export const RequesterDashboardPage: React.FC = () => {
                 You have not submitted any emergency requests. If a student or patient requires blood, click "Create Emergency Request" to begin.
               </p>
               <button
-                onClick={() => setCreateModalOpen(true)}
+                onClick={handleOpenCreateModal}
                 className="px-4 py-2 rounded-xl bg-desk-midnight text-white text-xs font-semibold inline-flex items-center space-x-1.5"
               >
                 <PlusCircle className="w-3.5 h-3.5 text-desk-amber" />
@@ -301,7 +304,7 @@ export const RequesterDashboardPage: React.FC = () => {
                 <div
                   key={req._id}
                   onClick={() => handleOpenDetails(req)}
-                  className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md transition cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md transition cursor-pointer flex flex-col justify-between gap-4"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center space-x-3 flex-wrap gap-y-1">
@@ -341,14 +344,14 @@ export const RequesterDashboardPage: React.FC = () => {
                       <span className="text-xs font-bold text-slate-900 block">
                         {req.donorResponseCount || 0} Donor Responses
                       </span>
-                      <span className="text-[11px] text-slate-400 font-mono">{req.requestId}</span>
                     </div>
                     {!['fulfilled', 'cancelled', 'rejected', 'expired'].includes(req.status) && <div className="flex gap-2" onClick={(event) => event.stopPropagation()}>
                       <button type="button" onClick={async () => { await api.closeRequest(req._id, 'fulfilled'); await fetchRequests(); }} className="rounded-lg bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100">Fulfilled</button>
-                      <button type="button" onClick={async () => { await api.closeRequest(req._id, 'cancelled'); await fetchRequests(); }} className="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-200">Cancel</button>
+                      <button type="button" onClick={() => setCancelConfirmReq(req)} className="rounded-lg bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700 hover:bg-rose-100">No longer needed</button>
                     </div>}
                     <ChevronRight className="w-5 h-5 text-slate-300" />
                   </div>
+                  <RequestOwnerActions request={req} onChanged={() => void fetchRequests()} />
                 </div>
               ))}
             </div>
@@ -609,7 +612,7 @@ export const RequesterDashboardPage: React.FC = () => {
         <Modal
           isOpen={true}
           onClose={() => setSelectedRequestDetails(null)}
-          title={`Request Details: ${selectedRequestDetails.request.requestId}`}
+          title="Request Details"
           maxWidth="max-w-2xl"
         >
           <div className="space-y-5">
@@ -677,13 +680,13 @@ export const RequesterDashboardPage: React.FC = () => {
 
             {/* Actions */}
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-              {['pending_verification', 'verified', 'broadcast'].includes(selectedRequestDetails.request.status) ? (
+              {['pending_verification', 'verified', 'broadcast', 'coordinating'].includes(selectedRequestDetails.request.status) ? (
                 <button
                   type="button"
                   onClick={() => setCancelConfirmReq(selectedRequestDetails.request)}
                   className="px-3 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition active:scale-95"
                 >
-                  Cancel Request
+                  No Longer Needed / Cancel Request
                 </button>
               ) : <div />}
 
@@ -705,8 +708,8 @@ export const RequesterDashboardPage: React.FC = () => {
           isOpen={Boolean(cancelConfirmReq)}
           onClose={() => setCancelConfirmReq(null)}
           onConfirm={handleConfirmCancel}
-          title={`Cancel Request: ${cancelConfirmReq.requestId}`}
-          subtitle="Deactivate broadcasts and mark request as cancelled"
+          title="Cancel Request"
+          subtitle="Tell donors the blood is no longer needed and close this request."
           decisionType="cancel"
           targetInfo={{
             name: `${cancelConfirmReq.bloodGroup} (${cancelConfirmReq.unitsRequired} Units)`,
@@ -714,13 +717,16 @@ export const RequesterDashboardPage: React.FC = () => {
             detail: `Facility: ${cancelConfirmReq.hospital} (${cancelConfirmReq.hospitalLocation})`,
           }}
           presetReasons={[
+            'No longer needed',
             'Blood already arranged from blood bank / student donors',
             'Patient condition stabilized / surgery postponed',
             'Created duplicate submission by mistake',
             'Alternative volunteer reached privately',
           ]}
+          defaultReason="No longer needed"
           confirmButtonText="Confirm Cancellation"
-          requiresReason={false}
+          auditNotice="Your cancellation reason will be saved with this blood request."
+          requiresReason
         />
       )}
 

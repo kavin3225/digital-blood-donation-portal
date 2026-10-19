@@ -98,7 +98,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     try {
       await api.markAllNotificationsRead();
       setNotifications(prev =>
@@ -108,7 +108,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (err) {
       console.error(err);
     }
-  };
+  }, []);
 
   const requestPushPermission = async (): Promise<boolean> => {
     if (!('Notification' in window)) {

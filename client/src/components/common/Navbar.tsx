@@ -14,6 +14,7 @@ import {
   X,
   LogIn,
   PencilLine,
+  MessageCircle,
 } from 'lucide-react';
 import { RoleType } from '../../types';
 import { ProfileCompletionModal } from '../profile/ProfileCompletionModal';
@@ -151,6 +152,14 @@ export const Navbar: React.FC = () => {
 
                 {/* Notifications Bell */}
                 <Link
+                  to="/support"
+                  className="rounded-xl p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                  aria-label="Contact admin"
+                  title="Queries & Issues"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                </Link>
+                <Link
                   to="/notifications"
                   className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 relative transition active:scale-95"
                   aria-label="View notifications"
@@ -217,6 +226,7 @@ export const Navbar: React.FC = () => {
               >
                 Notifications {unreadCount > 0 && `(${unreadCount})`}
               </Link>
+              <Link to="/support" onClick={() => setMobileMenuOpen(false)} className="block rounded-xl px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-100">Queries & Issues — Chat with Admin</Link>
               <Link
                 to="/profile"
                 onClick={() => setMobileMenuOpen(false)}

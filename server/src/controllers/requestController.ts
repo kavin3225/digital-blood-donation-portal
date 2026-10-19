@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth';
 import { EmergencyRequest, RequestStatusType } from '../models/EmergencyRequest';
 import { DonorResponse } from '../models/DonorResponse';
+import { NotificationLog } from '../models/NotificationLog';
 import { StudentRegistration } from '../models/StudentRegistration';
 import { logAudit } from '../services/auditService';
 import { z } from 'zod';
@@ -219,28 +220,19 @@ export const getActiveBroadcasts = async (
       requiredBy: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     };
 
-    // If blood group filter provided in query
-    if (req.query.bloodGroup && req.query.bloodGroup !== 'All') {
-      filter.bloodGroup = (req.query.bloodGroup as string).replace(/ /g, '+');
-    }
-
-    if (req.user && ['Donor', 'Both'].includes(req.user.portalRole || req.user.selectedRole)) {
-      filter.bloodGroup = req.user.bloodGroup;
-    }
-
     // Optional district filter
     if (req.query.district && req.query.district !== 'All') {
       filter.district = req.query.district;
     }
 
     const requests = await EmergencyRequest.find(filter)
-      .select('requestId status bloodGroup urgency unitsRequired district area requiredBy broadcastAt createdAt')
+      .select('requestId requesterId status bloodGroup urgency unitsRequired district area requiredBy broadcastAt createdAt contactPersonName contactPersonPhone')
       .sort({ broadcastAt: -1, createdAt: -1 });
 
     res.status(200).json({ success: true, requests: requests.map((request) => ({
       ...request.toObject(),
       patientName: '', patientEmail: '', patientReference: 'BIT College Request',
-      contactPersonName: 'College requester', contactPersonPhone: '', briefContext: 'Open the portal to offer help. Patient details are coordinated privately.',
+      briefContext: 'Open the portal to offer help. Patient details are coordinated privately.',
     })) });
   } catch (error) {
     next(error);
@@ -384,5 +376,52 @@ export const closeOwnRequest = async (req: AuthenticatedRequest, res: Response, 
     await request.save();
     await logAudit({ actorId: req.user?._id, actorEmail: req.user?.googleEmail || '', actorRole: req.user?.systemRole || 'student', action: status === 'fulfilled' ? 'REQUEST_MARKED_FULFILLED' : 'REQUEST_CLOSED_BY_OWNER', targetEntity: 'EmergencyRequest', targetId: request._id.toString(), details: { requestId: request.requestId, status } });
     res.status(200).json({ success: true, request, message: status === 'fulfilled' ? 'Request marked fulfilled.' : 'Request cancelled.' });
+  } catch (error) { next(error); }
+};
+
+export const updateOwnRequestRemark = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, message: 'Unauthenticated' }); return; }
+    const remark = req.body?.remark;
+    if (typeof remark !== 'string' || remark.trim().length > 500) {
+      res.status(400).json({ success: false, message: 'A remark of up to 500 characters is required.' }); return;
+    }
+    const request = await EmergencyRequest.findById(req.params.id);
+    if (!request) { res.status(404).json({ success: false, message: 'Request not found.' }); return; }
+    if (request.requesterId.toString() !== req.user._id.toString()) {
+      res.status(403).json({ success: false, message: 'You can only update a remark on your own request.' }); return;
+    }
+    request.requesterRemark = remark.trim();
+    await request.save();
+    res.status(200).json({ success: true, request, message: 'Request remark saved.' });
+  } catch (error) { next(error); }
+};
+
+export const permanentlyDeleteRequest = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.user) { res.status(401).json({ success: false, message: 'Unauthenticated' }); return; }
+    const request = await EmergencyRequest.findById(req.params.id);
+    if (!request) { res.status(404).json({ success: false, message: 'Request not found.' }); return; }
+    const privileged = req.user.systemRole === 'admin' || req.user.systemRole === 'coordinator';
+    const isOwner = request.requesterId.toString() === req.user._id.toString();
+    if (!privileged && !isOwner) { res.status(403).json({ success: false, message: 'You can only permanently delete your own requests.' }); return; }
+
+    await logAudit({
+      actorId: req.user._id,
+      actorEmail: req.user.googleEmail,
+      actorRole: req.user.systemRole,
+      action: 'REQUEST_PERMANENTLY_DELETED',
+      targetEntity: 'EmergencyRequest',
+      targetId: request._id.toString(),
+      details: { requestId: request.requestId, requesterEmail: request.requesterEmail, status: request.status },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    await Promise.all([
+      DonorResponse.deleteMany({ requestId: request._id }),
+      NotificationLog.deleteMany({ requestId: request._id }),
+    ]);
+    await request.deleteOne();
+    res.status(200).json({ success: true, message: 'Request and its donor responses were permanently deleted.' });
   } catch (error) { next(error); }
 };

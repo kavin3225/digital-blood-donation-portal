@@ -7,6 +7,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { Modal } from '../components/common/Modal';
 import { ProfileCompletionModal } from '../components/profile/ProfileCompletionModal';
 import { ProfileIncompleteBanner } from '../components/profile/ProfileIncompleteBanner';
+import { RequestOwnerActions } from '../components/request/RequestOwnerActions';
 import {
   Heart,
   CheckCircle,
@@ -18,13 +19,17 @@ import {
   Send,
   Truck,
   RotateCcw,
+  Phone,
 } from 'lucide-react';
 
 export const DonorDashboardPage: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const [activeRequests, setActiveRequests] = useState<EmergencyRequest[]>([]);
+  const [myRequests, setMyRequests] = useState<EmergencyRequest[]>([]);
   const [myResponses, setMyResponses] = useState<DonorResponseItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bloodGroupFilter, setBloodGroupFilter] = useState('All');
+  const [districtFilter, setDistrictFilter] = useState('All');
 
   // Response Modal State
   const [selectedRequest, setSelectedRequest] = useState<EmergencyRequest | null>(null);
@@ -49,15 +54,15 @@ export const DonorDashboardPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Fetch active broadcasts matching this donor's blood group
-      const reqRes = await api.getActiveBroadcasts(user?.bloodGroup);
-      if (reqRes.success) {
-        setActiveRequests(reqRes.requests || []);
-      }
-      const respRes = await api.getMyResponseHistory();
-      if (respRes.success) {
-        setMyResponses(respRes.responses || []);
-      }
+      // Fetch active campus requests across all blood groups
+      const [reqRes, ownReqRes, respRes] = await Promise.all([
+        api.getActiveBroadcasts(),
+        api.getMyRequests(),
+        api.getMyResponseHistory(),
+      ]);
+      if (reqRes.success) setActiveRequests(reqRes.requests || []);
+      if (ownReqRes.success) setMyRequests(ownReqRes.requests || []);
+      if (respRes.success) setMyResponses(respRes.responses || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -68,6 +73,12 @@ export const DonorDashboardPage: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [user]);
+
+  const districts = Array.from(new Set(activeRequests.map((request) => request.district).filter(Boolean))).sort();
+  const filteredRequests = activeRequests.filter((request) =>
+    (bloodGroupFilter === 'All' || request.bloodGroup === bloodGroupFilter) &&
+    (districtFilter === 'All' || request.district === districtFilter)
+  );
 
   const handleOpenResponse = (req: EmergencyRequest) => {
     if (!user?.isProfileComplete) {
@@ -124,19 +135,69 @@ export const DonorDashboardPage: React.FC = () => {
           />
         )}
 
+        {myRequests.length > 0 && (
+          <section className="space-y-3" aria-labelledby="my-blood-requests-heading">
+            <h2 id="my-blood-requests-heading" className="text-lg font-bold text-slate-900">
+              My Emergency Requests ({myRequests.length})
+            </h2>
+            <div className="space-y-3">
+              {myRequests.map((request) => (
+                <article key={request._id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-slate-900">{request.unitsRequired} Unit{request.unitsRequired === 1 ? '' : 's'} ({request.bloodGroup})</span>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{request.requestTarget === 'Self' ? 'Self Request' : 'College Friend'}</span>
+                      <StatusBadge status={request.status} />
+                    </div>
+                    <p className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+                      <MapPin className="h-3.5 w-3.5" /> {request.area}, {request.district}
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-400">Needed by {new Date(request.requiredBy).toLocaleString()}</p>
+                  </div>
+                  <RequestOwnerActions request={request} onChanged={() => void fetchData()} />
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* RELEVANT EMERGENCY BLOOD REQUESTS */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                <span>Active College Emergency Requests Matching {user?.bloodGroup}</span>
+                <span>Active College Emergency Requests</span>
                 <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-bold">
-                  {activeRequests.length} Active
+                  {filteredRequests.length} Active
                 </span>
               </h2>
               <p className="text-xs text-slate-500">
-                Matching requests appear here as soon as they are submitted. Review each request and respond if you can help.
+                Active campus requests appear here for every blood group. Review a request and contact the requester if you can help.
               </p>
+            </div>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <label className="sr-only" htmlFor="donor-blood-group-filter">Filter by blood group</label>
+              <select
+                id="donor-blood-group-filter"
+                value={bloodGroupFilter}
+                onChange={(event) => setBloodGroupFilter(event.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                <option value="All">All blood groups</option>
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((group) => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
+              </select>
+              <label className="sr-only" htmlFor="donor-district-filter">Filter by district</label>
+              <select
+                id="donor-district-filter"
+                value={districtFilter}
+                onChange={(event) => setDistrictFilter(event.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                <option value="All">All districts</option>
+                {districts.map((district) => <option key={district} value={district}>{district}</option>)}
+              </select>
             </div>
           </div>
 
@@ -147,14 +208,28 @@ export const DonorDashboardPage: React.FC = () => {
           ) : activeRequests.length === 0 ? (
             <div className="p-8 text-center bg-white rounded-3xl border border-slate-200/80 space-y-2">
               <CheckCircle className="w-8 h-8 text-green-500 mx-auto" />
-              <h3 className="text-sm font-bold text-slate-800">No Urgent {user?.bloodGroup} Requests Right Now</h3>
+              <h3 className="text-sm font-bold text-slate-800">No Active Requests Right Now</h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
-                No matching requests are available right now. Keep your availability confirmed so coordinators can alert you when an emergency occurs.
+                There are no active campus requests right now. Check back later for new requests.
               </p>
+            </div>
+          ) : filteredRequests.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-3xl border border-slate-200/80 space-y-2">
+              <MapPin className="w-8 h-8 text-slate-400 mx-auto" />
+              <h3 className="text-sm font-bold text-slate-800">No Requests Match These Filters</h3>
+              <p className="text-xs text-slate-500">Try another blood group or district to see more active requests.</p>
+              <button
+                type="button"
+                onClick={() => { setBloodGroupFilter('All'); setDistrictFilter('All'); }}
+                className="mt-1 rounded-lg px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+              >
+                Clear filters
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeRequests.map(req => {
+              {filteredRequests.map(req => {
+                const isOwnRequest = String(req.requesterId) === String(user?._id);
                 const hasResponded = myResponses.some(r => {
                   const reqId = typeof r.requestId === 'string' ? r.requestId : r.requestId?._id;
                   return reqId === req._id;
@@ -168,7 +243,6 @@ export const DonorDashboardPage: React.FC = () => {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <StatusBadge status={req.status} />
-                        <span className="text-[11px] font-mono text-slate-400">{req.requestId}</span>
                       </div>
 
                       <div>
@@ -180,6 +254,7 @@ export const DonorDashboardPage: React.FC = () => {
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
                             {req.requestTarget === 'College Friend' ? 'For College Friend' : 'Self Request'}
                           </span>
+                          {isOwnRequest && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">Your request</span>}
                         </div>
                         <p className="text-xs text-slate-600 flex items-center space-x-1 mt-1.5 font-medium">
                           <MapPin className="w-3.5 h-3.5 text-garden-terracotta flex-shrink-0" />
@@ -192,6 +267,8 @@ export const DonorDashboardPage: React.FC = () => {
                         <p>{req.briefContext}</p>
                       </div>
 
+                      {req.contactPersonPhone && <a href={`tel:${req.contactPersonPhone.replace(/[^\d+]/g, '')}`} className="inline-flex w-fit items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"><Phone className="h-3.5 w-3.5" />Call contact: {req.contactPersonPhone}</a>}
+
                       <div className="text-[11px] text-slate-500 flex items-center space-x-1">
                         <Clock className="w-3.5 h-3.5 text-red-500" />
                         <span>Required by: {new Date(req.requiredBy).toLocaleString()}</span>
@@ -199,7 +276,9 @@ export const DonorDashboardPage: React.FC = () => {
                     </div>
 
                     <div className="pt-2 border-t border-slate-100">
-                      {hasResponded ? (
+                      {isOwnRequest ? (
+                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-center text-xs font-semibold text-rose-800">You submitted this request</div>
+                      ) : hasResponded ? (
                         <div className="flex items-center justify-between text-xs text-green-700 font-semibold bg-green-50 px-3 py-2 rounded-xl border border-green-200">
                           <span>You have responded to this alert</span>
                           <button
@@ -258,7 +337,7 @@ export const DonorDashboardPage: React.FC = () => {
                     return (
                       <tr key={resp._id} className="py-2.5">
                         <td className="py-3 font-medium text-slate-900">
-                          {reqObj ? `${reqObj.requestId} (${reqObj.bloodGroup} at ${reqObj.hospital})` : 'Emergency Request'}
+                          {reqObj ? `${reqObj.bloodGroup} request${reqObj.hospital ? ` at ${reqObj.hospital}` : ''}` : 'Emergency Request'}
                         </td>
                         <td className="py-3">
                           <span
@@ -305,7 +384,7 @@ export const DonorDashboardPage: React.FC = () => {
         <Modal
           isOpen={true}
           onClose={() => setSelectedRequest(null)}
-          title={`Respond to ${selectedRequest.requestId}`}
+          title="Respond to Blood Request"
         >
           {responseSuccessMessage ? (
             <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-center space-y-2">

@@ -7,7 +7,9 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { Modal } from '../components/common/Modal';
 import { ProfileCompletionModal } from '../components/profile/ProfileCompletionModal';
 import { ProfileIncompleteBanner } from '../components/profile/ProfileIncompleteBanner';
+import { RequestOwnerActions } from '../components/request/RequestOwnerActions';
 import { TAMIL_NADU_DISTRICTS, CAMPUS_AREA_SUGGESTIONS } from '../utils/districts';
+import { useToast } from '../context/ToastContext';
 import {
   Layers,
   Heart,
@@ -25,6 +27,7 @@ import {
 
 export const BothDashboardPage: React.FC = () => {
   const { user, refreshUser } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'donating' | 'requesting'>('donating');
 
   // Shared state
@@ -62,7 +65,7 @@ export const BothDashboardPage: React.FC = () => {
   const [newUrgency, setNewUrgency] = useState<'emergency' | 'within_24h' | 'planned'>('emergency');
   const [newUnits, setNewUnits] = useState(1);
   const [newDistrict, setNewDistrict] = useState(user?.district || 'Erode');
-  const [newArea, setNewArea] = useState(user?.approximateArea || 'Sathyamangalam Campus');
+  const [newArea, setNewArea] = useState('');
   const [newRequiredBy, setNewRequiredBy] = useState('');
   const [newContext, setNewContext] = useState('');
   const [createSubmitting, setCreateSubmitting] = useState(false);
@@ -138,6 +141,7 @@ export const BothDashboardPage: React.FC = () => {
       setProfileModalOpen(true);
       return;
     }
+    setNewArea('');
     setCreateModalOpen(true);
   };
 
@@ -160,7 +164,7 @@ export const BothDashboardPage: React.FC = () => {
 
     try {
       setCreateSubmitting(true);
-      await api.createRequest({
+      const result = await api.createRequest({
         clientRequestKey: crypto.randomUUID(),
         requestTarget: newRequestTarget,
         patientEmail: newRequestTarget === 'Self' ? (user?.collegeEmail || user?.googleEmail) : newPatientEmail.trim().toLowerCase(),
@@ -176,6 +180,7 @@ export const BothDashboardPage: React.FC = () => {
         contactPersonPhone: user?.mobile || '9999999999',
         briefContext: newContext.trim(),
       });
+      if (result.success) toast.success('Blood request submitted. Campus users have been notified.');
       setCreateModalOpen(false);
       setNewContext('');
       if (newRequestTarget === 'College Friend') setNewPatientEmail('');
@@ -307,7 +312,7 @@ export const BothDashboardPage: React.FC = () => {
               ) : (
                 <div className="space-y-3">
                   {myCreatedRequests.map(req => (
-                    <div key={req._id} className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div key={req._id} className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm">
                       <div className="space-y-1">
                         <div className="flex items-center space-x-2">
                           <span className="font-bold text-sm text-slate-900">{req.unitsRequired} Units ({req.bloodGroup})</span>
@@ -321,7 +326,7 @@ export const BothDashboardPage: React.FC = () => {
                           <span>{req.area}, {req.district || 'Erode'}</span>
                         </p>
                       </div>
-                      <span className="text-xs font-mono text-slate-400">{req.requestId}</span>
+                      <RequestOwnerActions request={req} onChanged={() => void fetchData()} />
                     </div>
                   ))}
                 </div>
@@ -333,7 +338,7 @@ export const BothDashboardPage: React.FC = () => {
 
       {/* QUICK RESPOND MODAL */}
       {respondModalReq && (
-        <Modal isOpen={true} onClose={() => setRespondModalReq(null)} title={`Respond to ${respondModalReq.requestId}`}>
+        <Modal isOpen={true} onClose={() => setRespondModalReq(null)} title="Respond to Blood Request">
           <form onSubmit={handleSubmitResponse} className="space-y-4">
             <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs space-y-1">
               <p className="font-bold text-red-900">{respondModalReq.unitsRequired} Units of {respondModalReq.bloodGroup} Needed</p>

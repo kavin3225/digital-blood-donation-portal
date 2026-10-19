@@ -170,7 +170,7 @@ export const googleLogin = async (
     }
     student.emailVerifiedAt = student.emailVerifiedAt || new Date();
 
-    if (student.systemRole === 'coordinator' || (student.systemRole !== 'student' && student.systemRole !== 'admin')) {
+    if ((student.systemRole === 'coordinator' && !student.coordinatorProvisionedAt && !ENV.INITIAL_COORDINATOR_EMAILS.includes(student.googleEmail)) || (student.systemRole !== 'student' && student.systemRole !== 'coordinator' && student.systemRole !== 'admin')) {
       res.status(403).json({ success: false, code: 'PRIVILEGED_LOGIN_NOT_ALLOWED', message: 'This privileged account is not authorized for Google sign-in.' });
       return;
     }

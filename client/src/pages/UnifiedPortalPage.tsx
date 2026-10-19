@@ -18,7 +18,9 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { Modal } from '../components/common/Modal';
 import { ProfileCompletionModal } from '../components/profile/ProfileCompletionModal';
 import { ProfileIncompleteBanner } from '../components/profile/ProfileIncompleteBanner';
+import { RequestOwnerActions } from '../components/request/RequestOwnerActions';
 import { TAMIL_NADU_DISTRICTS, CAMPUS_AREA_SUGGESTIONS } from '../utils/districts';
+import { useToast } from '../context/ToastContext';
 
 // Icons
 import {
@@ -44,6 +46,7 @@ import {
 
 export const UnifiedPortalPage: React.FC = () => {
   const { user, updateRolePreference, refreshUser } = useAuth();
+  const { toast } = useToast();
 
   // Active View Mode inside the Unified Portal: 'Donor' | 'Requester' | 'Both'
   const [activePortalMode, setActivePortalMode] = useState<RoleType>(
@@ -91,7 +94,7 @@ export const UnifiedPortalPage: React.FC = () => {
   const [reqUrgency, setReqUrgency] = useState<'emergency' | 'within_24h' | 'planned'>('emergency');
   const [reqUnits, setReqUnits] = useState(1);
   const [reqDistrict, setReqDistrict] = useState(user?.district || 'Erode');
-  const [reqArea, setReqArea] = useState(user?.approximateArea || 'Sathyamangalam Campus');
+  const [reqArea, setReqArea] = useState('');
   const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
   const [reqRequiredBy, setReqRequiredBy] = useState('');
   const [reqContactName, setReqContactName] = useState(user?.name || '');
@@ -112,7 +115,6 @@ export const UnifiedPortalPage: React.FC = () => {
       if (!reqContactName) setReqContactName(user.name || '');
       if (!reqContactPhone) setReqContactPhone(user.mobile || '');
       if (!reqDistrict) setReqDistrict(user.district || 'Erode');
-      if (!reqArea) setReqArea(user.approximateArea || 'Sathyamangalam Campus');
     }
   }, [user, requestTarget]);
 
@@ -198,6 +200,7 @@ export const UnifiedPortalPage: React.FC = () => {
       setProfileModalOpen(true);
       return;
     }
+    setReqArea('');
     setCreateRequestModalOpen(true);
   };
 
@@ -254,6 +257,7 @@ export const UnifiedPortalPage: React.FC = () => {
 
       if (res.success) {
         setCreateSuccess('Emergency request sent to campus users. Matching donors can respond now.');
+        toast.success('Blood request submitted. Campus users have been notified.');
         setTimeout(() => {
           setCreateRequestModalOpen(false);
           setCreateSuccess(null);
@@ -516,7 +520,7 @@ export const UnifiedPortalPage: React.FC = () => {
                     <div
                       key={req._id}
                       onClick={() => handleInspectRequest(req)}
-                      className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm hover:border-slate-300 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="p-5 bg-white rounded-3xl border border-slate-200 shadow-sm hover:border-slate-300 transition cursor-pointer flex flex-col gap-4"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center space-x-2">
@@ -540,6 +544,7 @@ export const UnifiedPortalPage: React.FC = () => {
                         <span className="font-semibold text-slate-800">{req.donorResponseCount || 0} Donors Responded</span>
                         <ChevronRight className="w-4 h-4 text-slate-400" />
                       </div>
+                      <RequestOwnerActions request={req} onChanged={() => void fetchPortalData()} />
                     </div>
                   ))}
                 </div>
@@ -649,7 +654,7 @@ export const UnifiedPortalPage: React.FC = () => {
                       <div
                         key={req._id}
                         onClick={() => handleInspectRequest(req)}
-                        className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100 flex items-center justify-between cursor-pointer"
+                        className="p-4 bg-teal-50/50 rounded-2xl border border-teal-100 cursor-pointer"
                       >
                         <div>
                           <div className="flex items-center space-x-1.5">
@@ -661,6 +666,7 @@ export const UnifiedPortalPage: React.FC = () => {
                           <p className="text-[11px] text-slate-500">{req.district} - {req.area || 'Campus'}</p>
                         </div>
                         <StatusBadge status={req.status} size="sm" />
+                        <RequestOwnerActions request={req} onChanged={() => void fetchPortalData()} />
                       </div>
                     ))}
                   </div>
@@ -680,7 +686,7 @@ export const UnifiedPortalPage: React.FC = () => {
         <Modal
           isOpen={true}
           onClose={() => setSelectedRequestForResponse(null)}
-          title={`Respond to Alert: ${selectedRequestForResponse.requestId}`}
+          title="Respond to Blood Request"
         >
           {responseSuccessMsg ? (
             <div className="p-4 bg-green-50 rounded-2xl border border-green-200 text-center space-y-2">
@@ -991,7 +997,7 @@ export const UnifiedPortalPage: React.FC = () => {
         <Modal
           isOpen={true}
           onClose={() => setInspectRequestModal(null)}
-          title={`Request Timeline: ${inspectRequestModal.request.requestId}`}
+          title="Request Timeline"
         >
           <div className="space-y-4 text-xs">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">

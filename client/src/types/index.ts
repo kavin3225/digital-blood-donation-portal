@@ -78,6 +78,7 @@ export interface EmergencyRequest {
   contactPersonName: string;
   contactPersonPhone: string;
   briefContext: string;
+  requesterRemark?: string;
   supportingEvidenceNote?: string;
   requesterId: string | any;
   requesterEmail: string;

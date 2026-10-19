@@ -44,6 +44,7 @@ export interface IEmergencyRequest extends Document {
   contactPersonName: string;
   contactPersonPhone: string;
   briefContext: string;
+  requesterRemark?: string;
   supportingEvidenceNote?: string;
   affectedStudentName?: string;
   affectedStudentEmail?: string;
@@ -173,6 +174,7 @@ const EmergencyRequestSchema = new Schema<IEmergencyRequest>(
       default: '',
       trim: true,
     },
+    requesterRemark: { type: String, default: '', trim: true, maxlength: 500 },
     supportingEvidenceNote: {
       type: String,
       default: '',

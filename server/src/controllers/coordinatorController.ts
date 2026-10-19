@@ -22,6 +22,13 @@ export const getPendingVerificationRequests = async (
   }
 };
 
+export const getAllRequestsCoordinator = async (_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const requests = await EmergencyRequest.find({}).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, requests });
+  } catch (error) { next(error); }
+};
+
 export const verifyAndApproveRequest = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -119,6 +126,7 @@ export const broadcastApprovedRequest = async (
     // Target eligible student donors:
     // Registered, active, consented to emergency communications, matching blood group (or compatible), willing
     const matchingDonors = await StudentRegistration.find({
+      systemRole: { $ne: 'admin' },
       status: 'active',
       consentEmergencyCommunications: true,
       currentWillingness: 'Willing',

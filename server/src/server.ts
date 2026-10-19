@@ -15,6 +15,7 @@ import coordinatorRoutes from './routes/coordinatorRoutes';
 import adminRoutes from './routes/adminRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import statsRoutes from './routes/statsRoutes';
+import supportRoutes from './routes/supportRoutes';
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use('/api/coordinator', coordinatorRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/support', supportRoutes);
 
 // Serve the built React application from the same origin in production.
 const clientDistPath = path.resolve(__dirname, '../../client/dist');

@@ -19,6 +19,7 @@ interface ActionConfirmModalProps {
   defaultReason?: string;
   confirmButtonText?: string;
   requiresReason?: boolean;
+  auditNotice?: string;
 }
 
 export const ActionConfirmModal: React.FC<ActionConfirmModalProps> = ({
@@ -33,6 +34,7 @@ export const ActionConfirmModal: React.FC<ActionConfirmModalProps> = ({
   defaultReason = '',
   confirmButtonText,
   requiresReason = true,
+  auditNotice = 'Action will be immutably stamped in the college audit log with administrator credentials.',
 }) => {
   const [reason, setReason] = useState(defaultReason);
   const [submitting, setSubmitting] = useState(false);
@@ -184,7 +186,7 @@ export const ActionConfirmModal: React.FC<ActionConfirmModalProps> = ({
           <div className="text-[11px] text-slate-400 bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2">
             <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
             <span>
-              Action will be immutably stamped in the college audit log with administrator credentials.
+              {auditNotice}
             </span>
           </div>
 

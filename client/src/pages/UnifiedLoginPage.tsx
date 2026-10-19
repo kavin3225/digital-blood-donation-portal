@@ -80,8 +80,9 @@ export const UnifiedLoginPage: React.FC = () => {
         },
       });
       googleButtonRef.current.replaceChildren();
+      const buttonWidth = Math.min(450, googleButtonRef.current.parentElement?.clientWidth || 450);
       window.google.accounts.id.renderButton(googleButtonRef.current, {
-        type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', width: 340,
+        type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', width: buttonWidth,
       });
       return true;
     };
@@ -95,40 +96,76 @@ export const UnifiedLoginPage: React.FC = () => {
   }, [hasGoogleClientId, loginWithGoogle, navigate]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#dce5f5] via-[#f4f2ff] to-[#e4e8f8] px-4 py-8">
-      <section className="w-full max-w-lg rounded-[28px] border border-white/80 bg-white px-7 py-9 text-center shadow-[0_28px_70px_rgba(55,48,110,0.2)] sm:px-10">
-        <h1 className="mb-7 flex items-center justify-center gap-3 text-left">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-rose-100 to-violet-100 shadow-inner">
-            <Droplet className="h-7 w-7 fill-rose-600 text-rose-700" aria-hidden="true" />
-          </span>
-          <span className="leading-tight">
-            <span className="block bg-gradient-to-r from-rose-700 via-violet-700 to-indigo-700 bg-clip-text text-xl font-extrabold tracking-tight text-transparent sm:text-2xl">Digital Blood</span>
-            <span className="mt-1 block text-sm font-semibold tracking-[0.16em] text-[#343b59] uppercase">Donation Portal</span>
-          </span>
-        </h1>
-        <form onSubmit={handlePasswordLogin} className="space-y-4 text-left">
-          <label className="block text-sm font-medium text-slate-800">Email
-            <input required type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Enter your email" className="mt-1.5 w-full rounded-lg border border-[#dfe4f1] bg-[#f0f2f9] px-3 py-2.5 text-sm font-normal outline-none transition focus:border-violet-500 focus:bg-white focus:ring-2 focus:ring-violet-100" />
-          </label>
-          <label className="block text-sm font-medium text-slate-800">Password
-            <input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" className="mt-1.5 w-full rounded-lg border border-[#dfe4f1] bg-[#f0f2f9] px-3 py-2.5 text-sm font-normal outline-none transition focus:border-violet-500 focus:bg-white focus:ring-2 focus:ring-violet-100" />
-          </label>
-          <button disabled={busy} className="w-full rounded-lg bg-gradient-to-r from-[#783bea] to-[#6440ee] px-4 py-2.5 text-base font-semibold text-white shadow-md shadow-violet-300/40 transition hover:brightness-95 disabled:opacity-60">{busy ? 'Signing in…' : 'Login'}</button>
-        </form>
-        <div className="my-4 flex items-center gap-3 text-xs text-slate-500"><span className="h-px flex-1 bg-slate-200" /><span>Or</span><span className="h-px flex-1 bg-slate-200" /></div>
-        <div className="flex min-h-11 justify-center">
-          {hasGoogleClientId ? (
-            <div ref={googleButtonRef} aria-label="Sign in with Google" />
-          ) : (
-            <button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-400">
-              <GoogleMark /> Sign in with Google
-            </button>
-          )}
+    <main className="min-h-screen bg-[#f3f4f8] p-0 text-slate-900 sm:grid sm:place-items-center sm:p-6 lg:p-10">
+      <section className="mx-auto grid min-h-screen w-full max-w-6xl overflow-hidden bg-white shadow-xl shadow-slate-900/10 sm:min-h-[min(760px,calc(100vh-3rem))] sm:rounded-[30px] lg:grid-cols-2">
+        <aside className="relative flex min-h-[250px] flex-col justify-between overflow-hidden bg-gradient-to-br from-[#641b46] via-[#7f174f] to-[#482080] px-6 py-7 text-white sm:min-h-[300px] sm:px-10 sm:py-9 lg:min-h-[680px] lg:px-12 lg:py-12">
+          <div className="relative z-10 flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-white/20 bg-white/10">
+              <Droplet className="h-6 w-6 fill-rose-300 text-white" aria-hidden="true" />
+            </span>
+            <span>
+              <span className="block text-lg font-extrabold tracking-tight">Digital Blood</span>
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-100">Donation Portal</span>
+            </span>
+          </div>
+
+          <div className="relative z-10 mt-8 max-w-md lg:mt-auto lg:pb-4">
+            <h1 className="max-w-sm text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-[2.7rem]">Be there when someone needs you.</h1>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-rose-50/85 sm:text-base">Connect donors, students, and coordinators when every moment matters.</p>
+          </div>
+
+          <div className="relative z-10 mt-6 hidden items-center gap-2 text-xs font-medium text-rose-100/80 lg:flex">
+            <span className="h-px w-8 bg-rose-200/60" />
+            GIVE HOPE <span className="text-rose-300">·</span> SHARE LIFE
+          </div>
+
+          <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-24 h-72 w-72 rounded-full border border-white/10 sm:right-[-5rem] sm:top-1/2 sm:h-[27rem] sm:w-[27rem] sm:-translate-y-1/2">
+            <div className="absolute inset-7 rounded-full border border-white/10" />
+            <div className="absolute inset-16 rounded-full border border-dashed border-white/15" />
+            <div className="absolute left-1/2 top-1/2 grid h-28 w-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[2rem] border border-white/20 bg-white/10 shadow-2xl shadow-black/10 backdrop-blur-sm">
+              <Droplet className="h-16 w-16 fill-rose-300 text-white" />
+            </div>
+            <span className="absolute left-[18%] top-[29%] h-3 w-3 rounded-full border-2 border-white/70 bg-rose-300" />
+            <span className="absolute bottom-[19%] right-[21%] h-2.5 w-2.5 rounded-full bg-fuchsia-200" />
+          </div>
+          <svg aria-hidden="true" className="pointer-events-none absolute bottom-8 right-0 hidden h-16 w-[56%] opacity-30 lg:block" viewBox="0 0 420 64" fill="none">
+            <path d="M0 34h104l16-1 16-17 17 34 19-47 21 48 17-17h210" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </aside>
+
+        <div className="flex items-center justify-center px-6 py-10 sm:px-10 lg:px-14 lg:py-14">
+          <div className="w-full max-w-[450px]">
+            <div className="mb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-700">Secure portal access</p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Welcome back</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Sign in with your account to continue to the donation portal.</p>
+            </div>
+
+            <form onSubmit={handlePasswordLogin} autoComplete="off" className="space-y-5 text-left">
+              <label className="block text-sm font-semibold text-slate-700">Email
+                <input required type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Enter your email" className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:bg-white focus:ring-4 focus:ring-violet-100" />
+              </label>
+              <label className="block text-sm font-semibold text-slate-700">Password
+                <input required type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:bg-white focus:ring-4 focus:ring-violet-100" />
+              </label>
+              <button disabled={busy} className="w-full rounded-xl bg-gradient-to-r from-[#7f174f] to-[#6828a5] px-4 py-3 text-base font-semibold text-white shadow-lg shadow-fuchsia-900/15 transition hover:-translate-y-0.5 hover:brightness-110 disabled:translate-y-0 disabled:opacity-60">{busy ? 'Signing in…' : 'Login'}</button>
+            </form>
+
+            <div className="my-6 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" /><span>OR CONTINUE WITH</span><span className="h-px flex-1 bg-slate-200" /></div>
+            <div className="flex min-h-11 justify-center">
+              {hasGoogleClientId ? (
+                <div ref={googleButtonRef} aria-label="Sign in with Google" />
+              ) : (
+                <button type="button" disabled className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-400">
+                  <GoogleMark /> Sign in with Google
+                </button>
+              )}
+            </div>
+
+            {!hasGoogleClientId && <p className="mt-3 text-center text-xs text-amber-700">Google sign-in needs an OAuth client ID configuration.</p>}
+            {error && <p role="alert" className="mt-4 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+          </div>
         </div>
-
-        {!hasGoogleClientId && <p className="mt-2 text-center text-xs text-amber-700">Google sign-in needs an OAuth client ID configuration.</p>}
-        {error && <p role="alert" className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-
       </section>
       {busy && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm" role="status" aria-live="polite">

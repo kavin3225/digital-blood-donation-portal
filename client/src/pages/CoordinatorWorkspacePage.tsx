@@ -25,6 +25,7 @@ export const CoordinatorWorkspacePage: React.FC = () => {
   const { toast } = useToast();
   const [requests, setRequests] = useState<EmergencyRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAllRequests, setShowAllRequests] = useState(false);
 
   // Active Action Modals
   const [verifyModalReq, setVerifyModalReq] = useState<EmergencyRequest | null>(null);
@@ -39,10 +40,10 @@ export const CoordinatorWorkspacePage: React.FC = () => {
   const [donorResponses, setDonorResponses] = useState<any[]>([]);
   const [unlockedContact, setUnlockedContact] = useState<any | null>(null);
 
-  const fetchCoordinatorQueue = async () => {
+  const fetchCoordinatorQueue = async (allRequests = showAllRequests) => {
     try {
       setLoading(true);
-      const res = await api.getCoordinatorRequests();
+      const res = allRequests ? await api.getAllCoordinatorRequests() : await api.getCoordinatorRequests();
       if (res.success) {
         setRequests(res.requests || []);
       }
@@ -65,7 +66,7 @@ export const CoordinatorWorkspacePage: React.FC = () => {
       toast.success(`Request ${verifyModalReq.requestId} verified for broadcast.`);
       setVerifyModalReq(null);
       setVerifyNotes('');
-      fetchCoordinatorQueue();
+      fetchCoordinatorQueue(showAllRequests);
     } catch (err: any) {
       toast.error(err.message || 'Failed to verify request');
     }
@@ -77,7 +78,7 @@ export const CoordinatorWorkspacePage: React.FC = () => {
       const res = await api.broadcastRequest(broadcastModalReq._id);
       toast.success(res.message || 'Emergency broadcast dispatched to eligible student donors!');
       setBroadcastModalReq(null);
-      fetchCoordinatorQueue();
+      fetchCoordinatorQueue(showAllRequests);
     } catch (err: any) {
       toast.error(err.message || 'Broadcast failed or cooldown active');
     }
@@ -89,7 +90,7 @@ export const CoordinatorWorkspacePage: React.FC = () => {
       await api.rejectRequest(rejectModalReq._id, reason);
       toast.success(`Emergency request ${rejectModalReq.requestId} rejected.`);
       setRejectModalReq(null);
-      fetchCoordinatorQueue();
+      fetchCoordinatorQueue(showAllRequests);
     } catch (err: any) {
       toast.error(err.message || 'Failed to reject request');
     }
@@ -101,10 +102,19 @@ export const CoordinatorWorkspacePage: React.FC = () => {
       await api.fulfillRequest(fulfillModalReq._id, notes);
       toast.success(`Request ${fulfillModalReq.requestId} marked as fulfilled and closed.`);
       setFulfillModalReq(null);
-      fetchCoordinatorQueue();
+      fetchCoordinatorQueue(showAllRequests);
     } catch (err: any) {
       toast.error(err.message || 'Failed to fulfill request');
     }
+  };
+
+  const handlePermanentDelete = async (request: EmergencyRequest) => {
+    if (!window.confirm(`Permanently delete ${request.requestId} and all its donor responses? This cannot be undone.`)) return;
+    try {
+      await api.permanentlyDeleteRequest(request._id);
+      toast.success(`Request ${request.requestId} was permanently deleted.`);
+      await fetchCoordinatorQueue(showAllRequests);
+    } catch (err: any) { toast.error(err.message || 'Could not permanently delete the request.'); }
   };
 
   const handleOpenResponses = async (req: EmergencyRequest) => {
@@ -160,9 +170,13 @@ export const CoordinatorWorkspacePage: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+              <button type="button" onClick={() => { setShowAllRequests(false); void fetchCoordinatorQueue(false); }} className={`rounded-lg px-3 py-2 text-xs font-semibold ${!showAllRequests ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Open queue</button>
+              <button type="button" onClick={() => { setShowAllRequests(true); void fetchCoordinatorQueue(true); }} className={`rounded-lg px-3 py-2 text-xs font-semibold ${showAllRequests ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>All requests</button>
+            </div>
             <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold font-mono">
-              Queue: {requests.length} Requests
+              {showAllRequests ? 'All records' : 'Open queue'}: {requests.length}
             </span>
           </div>
         </div>
@@ -194,6 +208,7 @@ export const CoordinatorWorkspacePage: React.FC = () => {
                     <StatusBadge status={req.status} size="sm" />
                     <span className="text-xs font-mono text-slate-400">{req.requestId}</span>
                   </div>
+                  {req.requesterRemark && <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">Requester remark: {req.requesterRemark}</p>}
 
                   {/* Student Casualty & Peer Submitter Badge */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs space-y-1.5">
@@ -301,6 +316,8 @@ export const CoordinatorWorkspacePage: React.FC = () => {
                       </button>
                     </>
                   )}
+
+                  <button type="button" onClick={() => void handlePermanentDelete(req)} className="py-2 px-3 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold transition">Delete permanently</button>
                 </div>
               </div>
             ))}

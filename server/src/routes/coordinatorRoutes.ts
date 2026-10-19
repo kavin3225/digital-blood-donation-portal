@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getPendingVerificationRequests,
+  getAllRequestsCoordinator,
   verifyAndApproveRequest,
   broadcastApprovedRequest,
   rejectRequest,
@@ -18,6 +19,7 @@ router.use(requireAuth);
 router.use(requireSystemRole('coordinator'));
 
 router.get('/requests', getPendingVerificationRequests);
+router.get('/requests/all', getAllRequestsCoordinator);
 router.put('/requests/:id/verify', verifyAndApproveRequest);
 router.post('/requests/:id/broadcast', broadcastLimiter, broadcastApprovedRequest);
 router.put('/requests/:id/reject', rejectRequest);

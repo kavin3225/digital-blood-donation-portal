@@ -19,6 +19,7 @@ import { CoordinatorWorkspacePage } from './pages/CoordinatorWorkspacePage';
 import { AdminManagementPage } from './pages/AdminManagementPage';
 import { NotificationCenterPage } from './pages/NotificationCenterPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { SupportChatPage } from './pages/SupportChatPage';
 import { VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage } from './pages/AuthActionPages';
 
 // Protected Route Wrapper
@@ -160,6 +161,15 @@ const AppContent: React.FC = () => {
             element={
               <ProtectedRoute>
                 <NotificationCenterPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/support"
+            element={
+              <ProtectedRoute>
+                <SupportChatPage />
               </ProtectedRoute>
             }
           />

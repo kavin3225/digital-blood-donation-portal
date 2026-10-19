@@ -34,7 +34,8 @@ export const getAllUsersAdmin = async (
       limit = 100,
     } = req.query;
 
-    const filter: any = {};
+    // Admin identities are intentionally not part of the student/staff directory.
+    const filter: any = { systemRole: { $ne: 'admin' } };
 
     if (search && typeof search === 'string') {
       const regex = safeSearch(search.trim());
@@ -89,6 +90,7 @@ export const getAllUsersAdmin = async (
         .limit(Number(limit)),
       StudentRegistration.countDocuments(filter),
       StudentRegistration.aggregate([
+        { $match: { systemRole: { $ne: 'admin' } } },
         {
           $group: {
             _id: null,
@@ -148,6 +150,66 @@ export const getAllUsersAdmin = async (
       },
       users: formatted,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Grant or revoke coordinator access for an existing, active college account. */
+export const setUserSystemRoleAdmin = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Unauthenticated' });
+      return;
+    }
+
+    const { studentId } = req.params;
+    const { systemRole } = req.body;
+    if (!['student', 'coordinator'].includes(systemRole)) {
+      res.status(400).json({ success: false, message: 'Choose student or coordinator.' });
+      return;
+    }
+
+    const student = await StudentRegistration.findById(studentId).select('+emailVerifiedAt');
+    if (!student || student.systemRole === 'admin') {
+      res.status(404).json({ success: false, message: 'Student/staff account not found.' });
+      return;
+    }
+    if (!/^[^@\s]+@bitsathy\.ac\.in$/i.test(student.googleEmail) || !student.emailVerifiedAt) {
+      res.status(400).json({ success: false, message: 'Coordinator access requires a verified @bitsathy.ac.in account.' });
+      return;
+    }
+    if (student.status !== 'active') {
+      res.status(400).json({ success: false, message: 'Only active accounts can be assigned coordinator access.' });
+      return;
+    }
+
+    const previousRole = student.systemRole;
+    student.systemRole = systemRole;
+    if (systemRole === 'coordinator') {
+      student.coordinatorProvisionedAt = new Date();
+      student.coordinatorProvisionedBy = req.user._id;
+    } else {
+      student.coordinatorProvisionedAt = undefined;
+      student.coordinatorProvisionedBy = undefined;
+    }
+    await student.save();
+
+    await logAudit({
+      actorId: req.user._id,
+      actorEmail: req.user.googleEmail,
+      actorRole: req.user.systemRole,
+      action: systemRole === 'coordinator' ? 'ADMIN_GRANTED_COORDINATOR_ROLE' : 'ADMIN_REVOKED_COORDINATOR_ROLE',
+      targetEntity: 'StudentRegistration',
+      targetId: student._id.toString(),
+      details: { targetEmail: student.googleEmail, previousRole, newRole: systemRole },
+    });
+
+    res.status(200).json({ success: true, message: `${student.googleEmail} is now ${systemRole}.`, systemRole });
   } catch (error) {
     next(error);
   }
@@ -327,6 +389,37 @@ export const moderateRequestAdmin = async (req: AuthenticatedRequest, res: Respo
   } catch (error) { next(error); }
 };
 
+export const permanentlyDeleteAdminRequests = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const requestIds = req.body?.requestIds;
+    if (!Array.isArray(requestIds) || requestIds.length === 0 || requestIds.length > 10000 || requestIds.some((id) => typeof id !== 'string' || !/^[a-f\d]{24}$/i.test(id))) {
+      res.status(400).json({ success: false, message: 'Select between 1 and 10,000 valid requests.' }); return;
+    }
+    const uniqueIds = [...new Set(requestIds)];
+    const requests = await EmergencyRequest.find({ _id: { $in: uniqueIds } }).select('_id requestId requesterEmail status');
+    if (!requests.length) {
+      res.status(200).json({ success: true, deletedCount: 0, message: 'No matching requests were found.' }); return;
+    }
+    const ids = requests.map((request) => request._id);
+    await logAudit({
+      actorId: req.user?._id,
+      actorEmail: req.user?.googleEmail || '',
+      actorRole: 'admin',
+      action: 'ADMIN_BULK_REQUESTS_DELETED',
+      targetEntity: 'EmergencyRequest',
+      details: { requestIds: requests.map((request) => request.requestId), count: requests.length },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    await Promise.all([
+      DonorResponse.deleteMany({ requestId: { $in: ids } }),
+      NotificationLog.deleteMany({ requestId: { $in: ids } }),
+    ]);
+    const deleted = await EmergencyRequest.deleteMany({ _id: { $in: ids } });
+    res.status(200).json({ success: true, deletedCount: deleted.deletedCount || 0, message: 'Selected requests and their donor responses were permanently deleted.' });
+  } catch (error) { next(error); }
+};
+
 export const sendPortalAnnouncement = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const title = String(req.body?.title || '').trim();
@@ -489,10 +582,13 @@ export const getAuditLogs = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { action, limit } = req.query;
+    const { action, limit, userId } = req.query;
     const filter: any = {};
     if (action) {
       filter.action = action;
+    }
+    if (typeof userId === 'string' && /^[a-f\d]{24}$/i.test(userId)) {
+      filter.$or = [{ targetId: userId }, { actorId: userId }];
     }
 
     const logs = await AuditLog.find(filter)

@@ -64,6 +64,8 @@ export const api = {
   getRequestDetails: (id: string) => request(`/requests/${id}`),
   cancelRequest: (id: string, reason?: string) => request(`/requests/${id}/cancel`, { method: 'PUT', data: { reason } }),
   closeRequest: (id: string, status: 'fulfilled' | 'cancelled', note?: string) => request(`/requests/${id}/close`, { method: 'PUT', data: { status, note } }),
+  updateOwnRequestRemark: (id: string, remark: string) => request(`/requests/${id}/remark`, { method: 'PUT', data: { remark } }),
+  permanentlyDeleteRequest: (id: string) => request(`/requests/${id}`, { method: 'DELETE' }),
 
   // Donors
   submitDonorResponse: (data: { requestId: string; responseType: string; note?: string }) =>
@@ -77,6 +79,7 @@ export const api = {
 
   // Coordinator
   getCoordinatorRequests: () => request('/coordinator/requests'),
+  getAllCoordinatorRequests: () => request('/coordinator/requests/all'),
   verifyRequest: (id: string, coordinatorNotes?: string) =>
     request(`/coordinator/requests/${id}/verify`, { method: 'PUT', data: { coordinatorNotes } }),
   broadcastRequest: (id: string) => request(`/coordinator/requests/${id}/broadcast`, { method: 'POST' }),
@@ -101,6 +104,8 @@ export const api = {
   },
   updateUserAdmin: (studentId: string, data: any) =>
     request(`/admin/users/${studentId}`, { method: 'PUT', data }),
+  setUserSystemRoleAdmin: (studentId: string, systemRole: 'student' | 'coordinator') =>
+    request(`/admin/users/${studentId}/system-role`, { method: 'PUT', data: { systemRole } }),
   getAllRequestsAdmin: (params: Record<string, any> = {}) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {
@@ -116,6 +121,7 @@ export const api = {
   },
   getAllNotificationsAdmin: () => request('/admin/notifications'),
   moderateRequestAdmin: (requestId: string, status: string, note = '') => request(`/admin/requests/${requestId}`, { method: 'PUT', data: { status, note } }),
+  permanentlyDeleteAdminRequests: (requestIds: string[]) => request('/admin/requests/bulk-delete', { method: 'DELETE', data: { requestIds } }),
   sendPortalAnnouncement: (title: string, body: string) => request('/admin/announcements', { data: { title, body } }),
   getSuspiciousRegistrations: () => request('/admin/suspicious-registrations'),
   resolveSuspiciousRegistration: (studentId: string, decision: 'approve' | 'block', reason?: string) =>
@@ -125,6 +131,15 @@ export const api = {
   getSyncEvents: () => request('/admin/sync-events'),
   retrySyncEvent: (eventId: string) => request(`/sync/retry/${eventId}`, { method: 'POST' }),
   getAuditLogs: (action?: string) => request(`/admin/audit-logs${action ? `?action=${action}` : ''}`),
+  getUserAuditHistory: (userId: string) => request(`/admin/audit-logs?userId=${encodeURIComponent(userId)}&limit=50`),
+
+  // Admin support chat
+  getSupportMessages: () => request('/support/messages'),
+  sendSupportMessage: (message: string) => request('/support/messages', { data: { message } }),
+  getSupportConversationsAdmin: () => request('/support/admin/conversations'),
+  getSupportConversationAdmin: (userId: string) => request(`/support/admin/conversations/${encodeURIComponent(userId)}`),
+  sendSupportReplyAdmin: (userId: string, message: string) => request(`/support/admin/conversations/${encodeURIComponent(userId)}`, { data: { message } }),
+  deleteSupportConversationAdmin: (userId: string) => request(`/support/admin/conversations/${encodeURIComponent(userId)}`, { method: 'DELETE' }),
 
   // Notifications
   subscribeDeviceToken: (subscription: PushSubscriptionJSON) => request('/notifications/subscribe', { data: { subscription, userAgent: navigator.userAgent } }),

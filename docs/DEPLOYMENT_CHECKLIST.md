@@ -38,7 +38,9 @@
 
 1. **MongoDB Atlas / Local Service**:
    - Create production database `bit_blood_portal`.
-   - Verify network access and connection string in `server/.env`.
+   - Use a dedicated Atlas database user for the portal and grant it the `readWrite` role on `bit_blood_portal` only.
+   - Set `MONGODB_URI` in the Render service environment to the Atlas connection string, with `/bit_blood_portal` as the database path. Keep the username and password in sync with the Atlas database user; never commit or share the URI.
+   - Save the Render environment change and confirm the service starts without MongoDB authentication or authorization errors.
 2. **Environment Variables**:
    - Set `NODE_ENV=production`.
    - Generate strong secrets for `JWT_SECRET` and `FORM_SYNC_SECRET`.

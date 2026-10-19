@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getAllUsersAdmin,
   updateUserAdmin,
+  setUserSystemRoleAdmin,
   getAllRequestsAdmin,
   getSuspiciousRegistrations,
   resolveSuspiciousRegistration,
@@ -11,6 +12,7 @@ import {
   getAllDonorResponsesAdmin,
   getAllNotificationsAdmin,
   moderateRequestAdmin,
+  permanentlyDeleteAdminRequests,
   sendPortalAnnouncement,
 } from '../controllers/adminController';
 import { requireAuth, requireSystemRole } from '../middlewares/auth';
@@ -23,9 +25,11 @@ router.use(requireSystemRole('admin'));
 // Full Student & Staff User Directory
 router.get('/users', getAllUsersAdmin);
 router.put('/users/:studentId', updateUserAdmin);
+router.put('/users/:studentId/system-role', setUserSystemRoleAdmin);
 
 // Emergency Requests Directory for Admin
 router.get('/requests', getAllRequestsAdmin);
+router.delete('/requests/bulk-delete', permanentlyDeleteAdminRequests);
 router.put('/requests/:requestId', moderateRequestAdmin);
 router.get('/donor-responses', getAllDonorResponsesAdmin);
 router.get('/notifications', getAllNotificationsAdmin);

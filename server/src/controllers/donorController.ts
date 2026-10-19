@@ -148,6 +148,7 @@ export const searchDonorsPrivacySafe = async (
     const { bloodGroup, area, residenceType, willingness, district } = req.query;
 
     const filter: any = {
+      systemRole: { $ne: 'admin' },
       status: 'active',
       // Only students who consented to emergency communications
       consentEmergencyCommunications: true,

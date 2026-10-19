@@ -37,13 +37,13 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
   const { toast } = useToast();
 
   const initialName = nameFromEmail(user?.googleEmail || user?.email || '');
-  const [name, setName] = useState(initialName || user?.name || '');
+  const [name, setName] = useState(user?.name || initialName || '');
   const [department, setDepartment] = useState(user?.department || DEPARTMENTS[0]);
   const [bloodGroup, setBloodGroup] = useState<BloodGroupType>(user?.bloodGroup || 'Unknown');
   const [mobile, setMobile] = useState(user?.mobile || '');
   const [district, setDistrict] = useState(user?.district || 'Erode');
   const [area, setArea] = useState(user?.approximateArea || 'Sathyamangalam Campus');
-  const [residenceType, setResidenceType] = useState<'Hostel' | 'Day Scholar' | ''>(user?.isProfileComplete ? user.residenceType || '' : '');
+  const [residenceType, setResidenceType] = useState<'Hostel' | 'Day Scholar' | ''>(user?.residenceType || '');
   const [consentAlerts, setConsentAlerts] = useState<boolean>(
     user?.consentEmergencyCommunications !== false
   );
@@ -56,13 +56,13 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
 
   useEffect(() => {
     if (user) {
-      setName(nameFromEmail(user.googleEmail || user.email || '') || user.name || '');
+      setName(user.name || nameFromEmail(user.googleEmail || user.email || '') || '');
       setDepartment(user.department || DEPARTMENTS[0]);
       setBloodGroup(user.bloodGroup || 'Unknown');
       setMobile(user.mobile || '');
       setDistrict(user.district || 'Erode');
       setArea(user.approximateArea || 'Sathyamangalam Campus');
-      setResidenceType(user.isProfileComplete ? user.residenceType || '' : '');
+      setResidenceType(user.residenceType || '');
       setConsentAlerts(user.consentEmergencyCommunications !== false);
       setShareContact(Boolean(user.shareContactWithRequesters));
     }

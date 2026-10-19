@@ -10,6 +10,7 @@ export const getCampusOverviewStats = async (
   try {
     // 1. Total counts
     const totalDonors = await StudentRegistration.countDocuments({
+      systemRole: { $ne: 'admin' },
       status: 'active',
       currentWillingness: 'Willing',
       selectedRole: { $in: ['Donor', 'Both'] },
@@ -22,6 +23,7 @@ export const getCampusOverviewStats = async (
     const bloodGroupDistribution = await StudentRegistration.aggregate([
       {
         $match: {
+          systemRole: { $ne: 'admin' },
           status: 'active',
           currentWillingness: 'Willing',
           selectedRole: { $in: ['Donor', 'Both'] },
@@ -40,6 +42,7 @@ export const getCampusOverviewStats = async (
     const areaAggregation = await StudentRegistration.aggregate([
       {
         $match: {
+          systemRole: { $ne: 'admin' },
           status: 'active',
           currentWillingness: 'Willing',
           selectedRole: { $in: ['Donor', 'Both'] },
